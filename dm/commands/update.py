@@ -65,11 +65,15 @@ def run(args) -> None:
     new_sample = _prompt_sample(current_sample)
 
     # --- Required columns ---
-    rc_display = ",".join(current_rc) if current_rc else "(all)"
+    all_keys = list(new_sample.keys())
+    rc_display = ",".join(current_rc) if current_rc else "(none)"
     rc_input = _prompt_with_default(
-        "Required columns (comma-separated, empty=all)", rc_display
-    )
-    if rc_input == "(all)" or not rc_input:
+        f"Required columns (comma-separated, 'all' for all {all_keys}, empty=none)",
+        rc_display,
+    ).strip().lower()
+    if rc_input == "all":
+        new_rc = all_keys
+    elif rc_input in ("(none)", ""):
         new_rc = []
     else:
         new_rc = [c.strip() for c in rc_input.split(",") if c.strip()]

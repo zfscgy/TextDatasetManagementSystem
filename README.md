@@ -37,12 +37,71 @@ Example:
 ```json
 {
     "sample": {
-        "text": "...",
-        "..."
+        "text": "..."
     },
-    "required_columns": ["text"],
+    "required_columns": ["text"]
 }
 ```
+
+**Array of strings** — e.g. a list of tags:
+
+```json
+{
+    "sample": {
+        "text": "...",
+        "tags": ["tag1"]
+    },
+    "required_columns": ["text", "tags"]
+}
+```
+
+Each entry must have a non-empty `tags` array whose items are all strings.
+
+**Array of objects** — e.g. a multi-turn conversation:
+
+```json
+{
+    "sample": {
+        "turns": [
+            {"role": "user", "content": "..."}
+        ]
+    },
+    "required_columns": ["turns"]
+}
+```
+
+Each entry must have a non-empty `turns` array. Every item must be an object containing at least `role` (string) and `content` (string).
+
+Validation rules for array columns:
+
+- A required array column must be non-empty.
+- Every item in the array must match the type of the first item in the sample array.
+- If the sample item is an object, every key defined in that object must be present in each item with a matching type. Nested objects are checked recursively.
+
+## Installation
+
+Requires Python 3.10+. No third-party dependencies.
+
+**1. Install the `dms` command**
+
+```bash
+pip install -e .
+```
+
+This registers `dms` as a system-wide command via the `pyproject.toml` entry point. The `-e` flag means edits to the source take effect immediately without reinstalling.
+
+**2. Initialize the system**
+
+```bash
+dms init
+```
+
+You will be prompted for two directories:
+
+- **Dataset root** — where all datasets are stored.
+- **Recovery** — where removed files are moved instead of being permanently deleted.
+
+Both directories are created automatically. The paths are saved to `config.json` in the project root.
 
 ## Storage
 
@@ -53,9 +112,14 @@ There is a `config.json` in the Dataset Management System's root directory, it s
 
 ## Usage
 
+**Initialize DMS**
+```bash
+dms init
+```
+
 **Create a dataset** 
 
-```
+```bash
 dms create test/d1 
 ```
 
@@ -73,7 +137,7 @@ After this, the dms will create the folder.
 
 **Add a jsonl file or a folder**
 
-```
+```bash
 dms add test/d1 a.jsonl
 dms add test/d1 samples/
 ```
@@ -87,11 +151,31 @@ For each file to add:
 - A line-by-line check is performed, to ignore the lines not following the given format. (Notice: required properties cannot be an empty string, for example: `{"text": ""}` is not valid if "text" is a required property)
 - The commandline will output (1) file is skipped or not; (2) how many entries (lines) are valid / total entries.
 
-In the end, it will show that totally how many samples are added, and how many are inivalid.
+In the end, it will show that totally how many samples are added, and how many are invalid.
 
-**Remove a josnl file from the dataset**
+**Column mapping (`-c`)**
 
+Use `-c SRC:DST` to rename columns before validation. The source and destination use dot notation for nested keys. Can be specified multiple times.
+
+```bash
+# Rename a top-level column
+dms add test/d1 data.jsonl -c old_name:new_name
+
+# Rename a key inside an object column
+dms add test/d1 data.jsonl -c meta.lang:meta.language
+
+# Rename a key inside every item of an array column
+dms add test/d1 data.jsonl -c messages.from:messages.role
+
+# Multiple mappings at once
+dms add test/d1 data.jsonl -c messages.from:messages.role -c messages.value:messages.content
 ```
+
+Mappings are applied in order before validation, so the renamed columns are what get checked against the dataset format.
+
+**Remove a JSONL file from the dataset**
+
+```bash
 dms rm test/d1 a.jsonl
 ```
 
@@ -100,7 +184,7 @@ It will output the number of entries in the file.
 
 **Rename a dataset**
 
-```
+```bash
 dms mv test/d1 test/d1-new
 ```
 
@@ -108,7 +192,7 @@ Simply rename the folder name of the dataset
 
 **Update dataset info**
 
-```
+```bash
 dms update test/d1
 ```
 
@@ -116,7 +200,7 @@ It will ask the users to input the new sample/required columns/name/description/
 
 **Show statistic information**
 
-```
+```bash
 dms stat test
 ```
 
@@ -126,7 +210,7 @@ When the argument is not provided, show the statistic of the whole dataset
 
 **Export dataset**
 
-```
+```bash
 dms export test -o test.zip
 ```
 
@@ -135,7 +219,7 @@ If the first argument is not provided, export the whole dataset.
 
 **Import dataset**
 
-```
+```bash
 dms import test.zip -o test
 ```
 

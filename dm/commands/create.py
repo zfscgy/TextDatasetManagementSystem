@@ -57,17 +57,16 @@ def run(args) -> None:
     all_keys = list(sample.keys())
     print(
         f"\nRequired columns (comma-separated). "
-        f"Leave empty to require ALL columns {all_keys}: "
+        f"Enter 'all' to require all columns {all_keys}, or leave empty for none: "
     )
-    rc_input = input().strip()
-    if rc_input:
+    rc_input = input().strip().lower()
+    if rc_input == "all":
+        required_columns = all_keys
+    elif rc_input:
         required_columns = [c.strip() for c in rc_input.split(",") if c.strip()]
-        # Validate
         invalid = [c for c in required_columns if c not in sample]
         if invalid:
-            raise SystemExit(
-                f"Required columns not in sample: {invalid}"
-            )
+            raise SystemExit(f"Required columns not in sample: {invalid}")
     else:
         required_columns = []
 
