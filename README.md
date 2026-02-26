@@ -101,14 +101,32 @@ You will be prompted for two directories:
 - **Dataset root** — where all datasets are stored.
 - **Recovery** — where removed files are moved instead of being permanently deleted.
 
-Both directories are created automatically. The paths are saved to `config.json` in the project root.
+Both directories are created automatically. The paths are saved under the `"default"` named config in `config.json`.
 
-## Storage
+## Root Configuration
 
-There is a `config.json` in the Dataset Management System's root directory, it specifies two folders:
+There is a `config.json` in the Dataset Management System's root directory. It holds one or more named configurations, plus an `active` key that selects which one is currently in use:
 
-- `dataset_root`: where the dataset root is stored.
-- `recovery`: where the deleted dataset lies.
+```json
+{
+  "active": "default",
+  "configs": {
+    "default": {
+      "dataset_root": "/path/to/datasets",
+      "recovery": "/path/to/datasets/.recovery"
+    },
+    "work": {
+      "dataset_root": "/work/datasets",
+      "recovery": "/work/datasets/.recovery"
+    }
+  }
+}
+```
+
+Each named config has two fields:
+
+- `dataset_root`: where datasets are stored.
+- `recovery`: where removed files are moved instead of being permanently deleted.
 
 ## Usage
 
@@ -117,13 +135,29 @@ There is a `config.json` in the Dataset Management System's root directory, it s
 dms init
 ```
 
-**Create a dataset** 
+**Show current configuration**
 
 ```bash
-dms create test/d1 
+dms config
 ```
 
-First, it will check whether `test/d1` already exists. If so, stop the command and tell the user the dataset already exists.
+Prints the active config name along with its `dataset_root` and `recovery` paths, and the list of all known config names.
+
+**Add a named configuration**
+
+```bash
+dms config add work
+```
+
+Interactively prompts for `dataset_root` and `recovery` directories and saves them as a new entry (here named `work`) in `config.json`. If the name already exists, it asks before overwriting.
+
+**Create a dataset**
+
+```bash
+dms create test/d1
+```
+
+Checks whether `test/d1` is already a dataset (contains a `config.json`). If so, the command stops with an error. An existing directory that is not yet a dataset is allowed.
 
 It will ask the user for:
 
@@ -135,23 +169,25 @@ It will ask the user for:
 
 After this, the dms will create the folder.
 
-**Add a jsonl file or a folder**
+**Add a JSONL file or a folder**
 
 ```bash
 dms add test/d1 a.jsonl
 dms add test/d1 samples/
 ```
 
-It will check whether the argument is a file or a folder, then try to add it to the dataset.
+Accepts a single file or a directory. When a directory is given it is searched **recursively** — all files in every sub-directory are collected and processed in sorted order.
 
-For each file to add:
+For each file:
 
-- If it is not a JSONL/CSV file, simply ignore this.
-- If it is a CSV file, convert it to JSONL
-- A line-by-line check is performed, to ignore the lines not following the given format. (Notice: required properties cannot be an empty string, for example: `{"text": ""}` is not valid if "text" is a required property)
-- The commandline will output (1) file is skipped or not; (2) how many entries (lines) are valid / total entries.
+- Non-JSONL/JSON/CSV files are skipped.
+- CSV and JSON files are converted to JSONL before being written.
+- A line-by-line check is performed; lines that do not match the dataset format are silently dropped. (Note: required columns cannot be an empty string — e.g. `{"text": ""}` is invalid when `text` is required.)
+- The output shows whether the file was skipped and how many entries were valid out of the total.
 
-In the end, it will show that totally how many samples are added, and how many are invalid.
+**Duplicate filename handling** — if two source files share the same name (e.g. `train/a.jsonl` and `test/a.jsonl`), the second is written as `a_1.jsonl`, the third as `a_2.jsonl`, and so on. This also applies when a file with that name already exists in the dataset from a previous `dms add`.
+
+At the end a summary line shows how many entries were added in total.
 
 **Column mapping (`-c`)**
 
@@ -228,5 +264,17 @@ If there are already the files with the same name, try to compare the files.
 If files are identical, skip it.  
 Otherwise, do not import the dataset and output error (data conflict)
 
+**Prune extra columns from a dataset**
 
+```bash
+dms prune test/d1
+```
+
+Removes any top-level keys from every JSONL entry that are not defined in the dataset's format sample. Useful for cleaning up files that contain extra columns introduced by upstream pipelines. The files are rewritten in-place.
+
+To prune all datasets at once:
+
+```bash
+dms prune -a
+```
 

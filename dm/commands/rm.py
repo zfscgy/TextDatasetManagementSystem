@@ -13,11 +13,11 @@ def run(args) -> None:
 
     dataset_path = resolve_dataset_path(rel_path)
     if not dataset_path.exists():
-        raise SystemExit(f"Dataset not found: {dataset_path}")
+        raise SystemExit(f"Dataset not found: {rel_path}")
 
     target = dataset_path / filename
     if not target.exists():
-        raise SystemExit(f"File not found in dataset: {target}")
+        raise SystemExit(f"File not found in dataset '{rel_path}': {filename}")
 
     if target.suffix.lower() != ".jsonl":
         raise SystemExit(f"Only JSONL files can be removed. Got: {filename}")

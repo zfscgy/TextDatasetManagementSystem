@@ -6,6 +6,12 @@ build-backend = "setuptools.build_meta"
 name = "dataset-manager"
 version = "0.1.0"
 requires-python = ">=3.10"
+dependencies = [
+    "charset-normalizer>=3.0",
+]
 
 [project.scripts]
 dms = "dm.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["dm*"]

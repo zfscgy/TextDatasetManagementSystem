@@ -1,6 +1,6 @@
 ---
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 
 - Your code should be lean and clean.

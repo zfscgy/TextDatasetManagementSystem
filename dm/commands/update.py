@@ -51,7 +51,7 @@ def run(args) -> None:
     dataset_path = resolve_dataset_path(rel_path)
 
     if not dataset_path.exists():
-        raise SystemExit(f"Dataset not found: {dataset_path}")
+        raise SystemExit(f"Dataset not found: {rel_path}")
 
     cfg = load_dataset_config(dataset_path)
     fmt: dict = cfg.get("format", {})

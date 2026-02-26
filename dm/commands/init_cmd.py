@@ -35,8 +35,13 @@ def run(args) -> None:
     recovery_path.mkdir(parents=True, exist_ok=True)
 
     cfg = {
-        "dataset_root": str(root_path),
-        "recovery": str(recovery_path),
+        "active": "default",
+        "configs": {
+            "default": {
+                "dataset_root": str(root_path),
+                "recovery": str(recovery_path),
+            }
+        },
     }
     save_root_config(cfg)
 

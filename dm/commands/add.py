@@ -19,16 +19,32 @@ def _parse_mappings(column_map: list[str]) -> list[tuple[list[str], list[str]]]:
     return mappings
 
 
+def _suffixed_name(dataset_path: Path, stem: str, ext: str, used: set[str]) -> str:
+    """Return a name with _1, _2, … suffix that is free both on disk and in `used`.
+
+    Only called for within-run duplicates (where the natural name is already
+    claimed by an earlier file in the same batch).
+    """
+    i = 1
+    while True:
+        candidate = f"{stem}_{i}{ext}"
+        if candidate not in used and not (dataset_path / candidate).exists():
+            return candidate
+        i += 1
+
+
 def _add_single_file(
     src: Path,
     dataset_path: Path,
     fmt: dict,
     mappings: list[tuple[list[str], list[str]]],
+    used: set[str],
 ) -> tuple[int, int]:
-    """
-    Validate and copy a single file into the dataset directory.
-    Column mappings are applied before validation.
-    Returns (valid_count, total_count). Returns (0, 0) and prints skip msg if unsupported.
+    """Validate and copy a single file into the dataset directory.
+
+    Conflict resolution:
+    - Natural name already claimed in this run → auto-suffix (_1, _2, …).
+    - Natural name exists on disk from a previous run → prompt overwrite/skip.
     """
     suffix = src.suffix.lower()
     if suffix not in (".jsonl", ".json", ".csv"):
@@ -39,24 +55,44 @@ def _add_single_file(
     if isinstance(result, str):
         print(f"  [ERROR] {src.name} — {result}")
         return 0, 0
-    valid_lines, valid_count, total_count = result
-
-    if suffix in (".csv", ".json"):
-        dest_name = src.stem + ".jsonl"
-        label = "CSV→JSONL" if suffix == ".csv" else "JSON→JSONL"
-        print(f"  [{label}] {src.name} → {dest_name}  ({valid_count}/{total_count} valid)")
-    else:
-        dest_name = src.name
-        print(f"  [ADD] {src.name}  ({valid_count}/{total_count} valid)")
+    valid_lines, valid_count, total_count, top_reason = result
 
     if valid_count == 0:
-        print(f"    [SKIP] No valid entries, file not written.")
+        msg = f"  [SKIP] {src.name} — no valid entries ({total_count} total), file not written."
+        if top_reason:
+            msg += f"\n    reason: {top_reason}"
+        print(msg)
         return 0, total_count
 
+    dest_ext = ".jsonl"
+    dest_stem = src.stem
+    label = "CSV→JSONL" if suffix == ".csv" else ("JSON→JSONL" if suffix == ".json" else "ADD")
+    natural_name = dest_stem + dest_ext
+
+    if natural_name in used:
+        # Within-run duplicate → auto-suffix, no prompt needed
+        dest_name = _suffixed_name(dataset_path, dest_stem, dest_ext, used)
+    elif (dataset_path / natural_name).exists():
+        # Exists from a previous run → ask the user
+        choice = input(f"  '{natural_name}' already exists. [o]verwrite / [s]kip? ").strip().lower()
+        if choice != "o":
+            print(f"  [SKIP] {src.name} — skipped.")
+            return 0, 0
+        dest_name = natural_name
+    else:
+        dest_name = natural_name
+
+    used.add(dest_name)
+
+    if dest_name != natural_name or suffix in (".csv", ".json"):
+        print(f"  [{label}] {src.name} → {dest_name}  ({valid_count}/{total_count} valid)")
+    else:
+        print(f"  [{label}] {src.name}  ({valid_count}/{total_count} valid)")
+    if top_reason and valid_count < total_count:
+        print(f"    top rejection reason: {top_reason}")
+
     dest = dataset_path / dest_name
-    # If destination already exists, append rather than overwrite
-    mode = "a" if dest.exists() else "w"
-    with dest.open(mode, encoding="utf-8") as f:
+    with dest.open("w", encoding="utf-8") as f:
         for line in valid_lines:
             f.write(line + "\n")
 
@@ -70,7 +106,7 @@ def run(args) -> None:
 
     dataset_path = resolve_dataset_path(rel_path)
     if not dataset_path.exists():
-        raise SystemExit(f"Dataset not found: {dataset_path}")
+        raise SystemExit(f"Dataset not found: {rel_path}")
     if not is_dataset_dir(dataset_path):
         raise SystemExit(f"'{rel_path}' is not a dataset (missing config.json)")
 
@@ -85,7 +121,10 @@ def run(args) -> None:
     if src_path.is_file():
         files = [src_path]
     elif src_path.is_dir():
-        files = [f for f in src_path.rglob("*") if f.is_file()]
+        files = sorted(f for f in src_path.rglob("*") if f.is_file())
+        if not files:
+            raise SystemExit(f"No files found under: {src_path}")
+        print(f"Found {len(files)} file(s) under {src_path}")
     else:
         raise SystemExit(f"Source is neither a file nor a directory: {src_path}")
 
@@ -93,11 +132,12 @@ def run(args) -> None:
         specs = ", ".join(f"{'.'.join(s)}:{'.'.join(d)}" for s, d in mappings)
         print(f"  Column mappings: {specs}")
 
+    used: set[str] = set()
     total_valid = 0
     total_all = 0
 
-    for f in sorted(files):
-        v, t = _add_single_file(f, dataset_path, fmt, mappings)
+    for f in files:
+        v, t = _add_single_file(f, dataset_path, fmt, mappings, used)
         total_valid += v
         total_all += t
 

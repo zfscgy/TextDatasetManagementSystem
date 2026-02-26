@@ -2,7 +2,7 @@
 
 import json
 
-from dm.dataset import create_dataset_config, now_str
+from dm.dataset import create_dataset_config, is_dataset_dir, now_str
 from dm.root_config import resolve_dataset_path
 
 
@@ -44,8 +44,8 @@ def run(args) -> None:
     rel_path: str = args.dataset_path
     dataset_path = resolve_dataset_path(rel_path)
 
-    if dataset_path.exists():
-        raise SystemExit(f"Dataset already exists: {dataset_path}")
+    if is_dataset_dir(dataset_path):
+        raise SystemExit(f"Path is already a dataset: {rel_path}")
 
     print(f"Creating dataset: {rel_path}\n")
 

@@ -72,7 +72,8 @@ def run(args) -> None:
         root = get_dataset_root()
 
     if not root.exists():
-        raise SystemExit(f"Path not found: {root}")
+        label = folder if folder else str(root)
+        raise SystemExit(f"Path not found: {label}")
 
     datasets = _collect_datasets(root)
 

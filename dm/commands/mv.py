@@ -14,10 +14,10 @@ def run(args) -> None:
     new_path = resolve_dataset_path(new_rel)
 
     if not old_path.exists():
-        raise SystemExit(f"Dataset not found: {old_path}")
+        raise SystemExit(f"Dataset not found: {old_rel}")
 
     if new_path.exists():
-        raise SystemExit(f"Destination already exists: {new_path}")
+        raise SystemExit(f"Destination already exists: {new_rel}")
 
     # Ensure parent directory of destination exists
     new_path.parent.mkdir(parents=True, exist_ok=True)

@@ -3,7 +3,7 @@
 import argparse
 import sys
 
-from dm.commands import add, create, export_cmd, import_cmd, init_cmd, mv, rm, stat, update
+from dm.commands import add, config_cmd, create, export_cmd, import_cmd, init_cmd, mv, prune, rm, stat, update
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -16,6 +16,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     # ── init ─────────────────────────────────────────────────────────────────
     sub.add_parser("init", help="Initialize the Dataset Management System")
+
+    # ── config ───────────────────────────────────────────────────────────────
+    p_config = sub.add_parser("config", help="Show or manage root configurations")
+    config_sub = p_config.add_subparsers(dest="config_subcommand", metavar="<subcommand>")
+    p_config_add = config_sub.add_parser("add", help="Add a new named configuration")
+    p_config_add.add_argument("name", help="Configuration name, e.g. 'work'")
 
     # ── create ───────────────────────────────────────────────────────────────
     p_create = sub.add_parser("create", help="Create a new dataset")
@@ -79,11 +85,30 @@ def build_parser() -> argparse.ArgumentParser:
         "-o", "--output", required=True, metavar="FOLDER", help="Destination relative folder path"
     )
 
+    # ── prune ────────────────────────────────────────────────────────────────
+    p_prune = sub.add_parser(
+        "prune", help="Remove extra columns from dataset JSONL files"
+    )
+    prune_group = p_prune.add_mutually_exclusive_group(required=True)
+    prune_group.add_argument(
+        "dataset_path",
+        nargs="?",
+        default=None,
+        help="Relative dataset path to prune, e.g. test/d1",
+    )
+    prune_group.add_argument(
+        "-a", "--all",
+        action="store_true",
+        dest="all",
+        help="Prune all datasets",
+    )
+
     return parser
 
 
 COMMAND_MAP = {
     "init": init_cmd.run,
+    "config": config_cmd.run,
     "create": create.run,
     "add": add.run,
     "rm": rm.run,
@@ -92,6 +117,7 @@ COMMAND_MAP = {
     "stat": stat.run,
     "export": export_cmd.run,
     "import": import_cmd.run,
+    "prune": prune.run,
 }
 
 
