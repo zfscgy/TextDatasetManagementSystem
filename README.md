@@ -240,9 +240,9 @@ It will ask the users to input the new sample/required columns/name/description/
 dms stat test
 ```
 
-Show the statistic information of a given folder, it will output a tree-like view to all the dataset files with number of entries, and average number of chars (with std) in each entry (simply convert it to string)
+Shows a tree-like view of all datasets under the given folder. For each JSONL file it prints the number of entries and the average character length (with std). Each dataset also shows a `[total]` summary line aggregating all its files. A grand total line at the end reports the number of datasets and total entries across the whole scope.
 
-When the argument is not provided, show the statistic of the whole dataset
+When the argument is not provided, show the statistic of the whole dataset root.
 
 **Export dataset**
 

@@ -40,8 +40,13 @@ def _collect_datasets(root: Path) -> list[Path]:
     return datasets
 
 
-def _print_tree(base: Path, datasets: list[Path]) -> None:
-    """Print a tree-like view of all datasets and their JSONL files."""
+def _print_tree(base: Path, datasets: list[Path]) -> tuple[int, int]:
+    """Print a tree-like view of all datasets and their JSONL files.
+
+    Returns (total_datasets, total_entries) across all datasets.
+    """
+    total_entries = 0
+
     for ds_path in datasets:
         rel = ds_path.relative_to(base.parent)
         print(f"\n{rel}/")
@@ -53,6 +58,9 @@ def _print_tree(base: Path, datasets: list[Path]) -> None:
             print("  (no JSONL files)")
             continue
 
+        ds_entries = 0
+        ds_lengths: list[float] = []
+
         for jf in jsonl_files:
             count, mean, std = _entry_char_stats(jf)
             print(
@@ -61,6 +69,20 @@ def _print_tree(base: Path, datasets: list[Path]) -> None:
                 f"avg_chars={mean:.1f}  "
                 f"std={std:.1f}"
             )
+            ds_entries += count
+            ds_lengths.extend([mean] * count)
+
+        ds_mean = statistics.mean(ds_lengths) if ds_lengths else 0.0
+        ds_std = statistics.pstdev(ds_lengths) if len(ds_lengths) > 1 else 0.0
+        print(
+            f"  └── [total]  "
+            f"entries={ds_entries}  "
+            f"avg_chars={ds_mean:.1f}  "
+            f"std={ds_std:.1f}"
+        )
+        total_entries += ds_entries
+
+    return len(datasets), total_entries
 
 
 def run(args) -> None:
@@ -82,5 +104,5 @@ def run(args) -> None:
         return
 
     print(f"Statistics for: {root}")
-    _print_tree(root, datasets)
-    print()
+    total_datasets, total_entries = _print_tree(root, datasets)
+    print(f"\nTotal: {total_datasets} dataset(s), {total_entries} entries")
