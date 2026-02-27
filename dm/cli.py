@@ -3,7 +3,7 @@
 import argparse
 import sys
 
-from dm.commands import add, config_cmd, create, export_cmd, import_cmd, init_cmd, mv, prune, rm, stat, update
+from dm.commands import add, config_cmd, create, export_cmd, import_cmd, init_cmd, mv, prune, rm, show, stat, update
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -85,6 +85,12 @@ def build_parser() -> argparse.ArgumentParser:
         "-o", "--output", required=True, metavar="FOLDER", help="Destination relative folder path"
     )
 
+    # ── show ─────────────────────────────────────────────────────────────────
+    p_show = sub.add_parser("show", help="Show detailed information about a dataset or config")
+    show_sub = p_show.add_subparsers(dest="show_subcommand", metavar="<subcommand>")
+    p_show_dataset = show_sub.add_parser("dataset", help="Show dataset metadata from config.json")
+    p_show_dataset.add_argument("dataset_path", help="Relative dataset path, e.g. test/d1")
+
     # ── prune ────────────────────────────────────────────────────────────────
     p_prune = sub.add_parser(
         "prune", help="Remove extra columns from dataset JSONL files"
@@ -118,6 +124,7 @@ COMMAND_MAP = {
     "export": export_cmd.run,
     "import": import_cmd.run,
     "prune": prune.run,
+    "show": show.run,
 }
 
 

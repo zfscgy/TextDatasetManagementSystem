@@ -278,3 +278,16 @@ To prune all datasets at once:
 dms prune -a
 ```
 
+**Show dataset metadata**
+
+```bash
+dms show dataset test/d1
+```
+
+Displays all metadata stored in the dataset's `config.json`:
+
+- Name, description, creator
+- Created and last-modified timestamps
+- Format: sample keys and required columns
+- Full operation log
+
