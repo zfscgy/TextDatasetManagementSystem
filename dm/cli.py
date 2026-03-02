@@ -86,10 +86,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # ── show ─────────────────────────────────────────────────────────────────
-    p_show = sub.add_parser("show", help="Show detailed information about a dataset or config")
-    show_sub = p_show.add_subparsers(dest="show_subcommand", metavar="<subcommand>")
-    p_show_dataset = show_sub.add_parser("dataset", help="Show dataset metadata from config.json")
-    p_show_dataset.add_argument("dataset_path", help="Relative dataset path, e.g. test/d1")
+    p_show = sub.add_parser("show", help="List datasets or show a single dataset's metadata")
+    p_show.add_argument(
+        "path",
+        nargs="?",
+        default=None,
+        help="Relative path to inspect — a dataset for full metadata, a folder for listing (default: entire dataset root)",
+    )
+    p_show.add_argument(
+        "-l",
+        action="store_true",
+        dest="long",
+        help="Also list individual JSONL filenames under each dataset",
+    )
 
     # ── prune ────────────────────────────────────────────────────────────────
     p_prune = sub.add_parser(
